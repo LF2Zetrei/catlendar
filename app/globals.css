@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes pulse-anim {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(var(--pulse-scale, 1.05)); opacity: var(--pulse-opacity, 0.8); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg) }
+}
+
+.catbut-btn {
+  background: var(--btn-bg, transparent);
+  transition: background 0.15s ease, transform 0.1s ease, filter 0.15s ease;
+}
+
+.catbut-btn:hover:not(:disabled) {
+  background: var(--btn-bg-hover, var(--btn-bg));
+}
+
+.catbut-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.catbut-btn-primary {
+  background-color: transparent;
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  transition: background-position 0.4s ease, filter 0.15s ease;
+}
+
+.catbut-btn-primary:hover:not(:disabled) {
+  background-color: transparent;
+  background-position: 100% 50%;
+  filter: brightness(1.15);
+}
+
+.catbut-flip img {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.catbut-card {
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.catbut-card:hover:not([aria-disabled="true"]) {
+  background: var(--card-bg-hover, var(--card-bg));
+}
+
+/* seulement si cliquable */
+.catbut-card-clickable:hover {
+  transform: translateY(-2px);
+}
+
+.catbut-card-clickable:active {
+  transform: translateY(0px);
+}
+
+.catbut-input {
+  background: var(--input-bg, transparent);
+  outline: none;
+  box-sizing: border-box;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.catbut-input:focus {
+  box-shadow: 0 0 0 3px rgba(155, 109, 255, 0.35);
+}
+
+.catbut-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.catbut-input::placeholder {
+  color: var(--input-placeholder, #8A7FA8);
+}
+
+@keyframes catbut-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.catbut-skeleton {
+  animation: catbut-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.catbut-table-row:hover {
+  background: rgba(155, 109, 255, 0.04);
+}
+
+@keyframes catbut-toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
