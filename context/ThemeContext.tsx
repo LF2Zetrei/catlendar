@@ -22,8 +22,7 @@ function subscribe(cb: () => void) {
 }
 
 function getSnapshot(): ThemeName {
-  const saved = localStorage.getItem('catbut-theme')
-  return saved === 'grim' ? 'grim' : 'normal'
+  return 'normal'
 }
 
 function getServerSnapshot(): ThemeName {

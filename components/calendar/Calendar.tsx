@@ -24,7 +24,7 @@ import {
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-export type CalendarProps<T = Record<string, unknown>> = {
+export type CalendarProps<T extends Record<string, unknown> = Record<string, unknown>> = {
   mode: CalendarMode
   currentDate: Date
   range: CalendarRange
@@ -51,7 +51,7 @@ export type CalendarProps<T = Record<string, unknown>> = {
 
 // ─── Sous-vue : Jour (Option B — positionnement pixel) ───────────────────────
 
-function DayView<T>({
+function DayView<T extends Record<string, unknown>>({
   currentDate, events, hourHeight = 60, renderCell, onCellClick, theme,
 }: {
   currentDate: Date
@@ -121,7 +121,7 @@ function DayView<T>({
 
 // ─── Sous-vue : Semaine/heures (Option B) ────────────────────────────────────
 
-function WeekHoursView<T>({
+function WeekHoursView<T extends Record<string, unknown>>({
   currentDate, events, hourHeight = 48, onCellClick, theme,
 }: {
   currentDate: Date
@@ -243,7 +243,7 @@ function WeekHoursView<T>({
 
 // ─── Sous-vue : Semaine/jours (vue mensuelle avec semaines) ──────────────────
 
-function WeekDaysView<T>({
+function WeekDaysView<T extends Record<string, unknown>>({
   currentDate, events, onCellClick, theme,
 }: {
   currentDate: Date
@@ -298,7 +298,7 @@ function WeekDaysView<T>({
 
 // ─── Sous-vue : Année ────────────────────────────────────────────────────────
 
-function YearView<T>({
+function YearView<T extends Record<string, unknown>>({
   currentDate, events, onCellClick, theme,
 }: {
   currentDate: Date
@@ -334,7 +334,7 @@ function YearView<T>({
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
-export function Calendar<T = Record<string, unknown>>({
+export function Calendar<T extends Record<string, unknown> = Record<string, unknown>>({
   mode,
   currentDate,
   range,
