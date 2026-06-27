@@ -43,25 +43,14 @@ const MUTED      = '#9b8aaa'
 const PURPLE     = '#9B6DFF'
 const WHITE      = '#ffffff'
 
-// Marges de la page — doivent correspondre au padding du wrapper
-const PAGE_PAD_V = 100 // haut + bas (chaque côté)
-const PAGE_PAD_H = 75  // gauche + droite (chaque côté)
+const PAGE_PAD_V = 100
+const PAGE_PAD_H = 75
 const COL_GAP    = 150
 
-// Base pastel color per month (Jan → Dec)
 const MONTH_COLORS = [
-  '#fdd5d5', // Jan  — winter rose
-  '#fdd5e8', // Feb  — soft pink
-  '#d5f0d5', // Mar  — spring green
-  '#e2f5d5', // Apr  — light green
-  '#e8d5fd', // May  — lavender
-  '#fde2cc', // Jun  — peach
-  '#fdf5cc', // Jul  — sunshine yellow
-  '#fde8cc', // Aug  — golden
-  '#fddec7', // Sep  — amber
-  '#fdd5c7', // Oct  — autumn orange
-  '#ead5cc', // Nov  — warm brown
-  '#cce5fd', // Dec  — winter blue
+  '#fdd5d5', '#fdd5e8', '#d5f0d5', '#e2f5d5',
+  '#e8d5fd', '#fde2cc', '#fdf5cc', '#fde8cc',
+  '#fddec7', '#fdd5c7', '#ead5cc', '#cce5fd',
 ]
 
 // ─── Utilitaires ──────────────────────────────────────────────────────────────
@@ -100,11 +89,12 @@ function getWeekNumber(date: Date): number {
 
 const WEEKDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
-function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: {
+function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick, compact = false }: {
   currentDate: Date
   events: CalendarEvent[]
   onCellClick: (d: Date) => void
   onCellDoubleClick: (d: Date) => void
+  compact?: boolean
 }) {
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -126,25 +116,34 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: 
   const weeks: Date[][] = []
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7))
 
-  return (
-    <div style={{ display: 'flex', gap: 10, height: '100%' }}>
-      {/* Numéros de semaine dans la zone colorée */}
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        paddingTop: 30, width: 26, flexShrink: 0,
-      }}>
-        {weeks.map((week, wi) => (
-          <div key={wi} style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, fontWeight: 700, color: "#fff",
-            fontFamily: 'var(--font-baloo)',
-          }}>
-            S{getWeekNumber(week[0])}
-          </div>
-        ))}
-      </div>
+  const wkFontSize = compact ? 11 : 24
+  const wkLabelSize = compact ? 11 : 24
+  const cellPad = compact ? '3px 2px' : '6px 5px'
+  const dayCircle = compact ? 16 : 22
+  const dayFontSize = compact ? 11 : 17
+  const evFontSize = compact ? 10 : 15
 
-      {/* Grille blanche */}
+  return (
+    <div style={{ display: 'flex', gap: compact ? 4 : 10, height: '100%' }}>
+      {/* Week numbers — hidden on compact */}
+      {!compact && (
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          paddingTop: 30, width: 26, flexShrink: 0,
+        }}>
+          {weeks.map((week, wi) => (
+            <div key={wi} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: wkFontSize, fontWeight: 700, color: '#fff',
+              fontFamily: 'var(--font-baloo)',
+            }}>
+              S{getWeekNumber(week[0])}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Grille */}
       <div style={{
         flex: 1, background: 'transparent', borderRadius: 10,
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -155,11 +154,11 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: 
         }}>
           {WEEKDAYS.map(d => (
             <div key={d} style={{
-              padding: '7px 4px', textAlign: 'center',
-              fontSize: 24, fontWeight: 700, color: '#fff',
+              padding: compact ? '4px 2px' : '7px 4px', textAlign: 'center',
+              fontSize: wkLabelSize, fontWeight: 700, color: '#fff',
               fontFamily: 'var(--font-baloo)',
               textTransform: 'uppercase', letterSpacing: 0.5,
-            }}>{d}</div>
+            }}>{compact ? d.slice(0, 1) : d}</div>
           ))}
         </div>
 
@@ -176,7 +175,7 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: 
                   <div key={di} onClick={() => handleCellClick(day)} style={{
                     background: isOut ? '#faf7f4' : cellColor(day),
                     borderLeft: di > 0 ? `1px solid ${BORDER}33` : 'none',
-                    padding: '6px 5px', boxSizing: 'border-box',
+                    padding: cellPad, boxSizing: 'border-box',
                     cursor: 'pointer', overflow: 'hidden', transition: 'filter 0.1s',
                   }}
                     onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.97)')}
@@ -184,8 +183,8 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: 
                   >
                     <div style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 22, height: 22, borderRadius: '50%',
-                      fontSize: 17, fontWeight: isToday(day) ? 700 : 500,
+                      width: dayCircle, height: dayCircle, borderRadius: '50%',
+                      fontSize: dayFontSize, fontWeight: isToday(day) ? 700 : 500,
                       fontFamily: 'var(--font-baloo)',
                       background: isToday(day) ? PURPLE : 'transparent',
                       color: isToday(day) ? WHITE : isOut ? MUTED : TEXT,
@@ -193,17 +192,17 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick }: 
                     }}>{day.getDate()}</div>
                     {dayEvents.map(ev => (
                       <div key={ev.id} style={{
-                        fontSize: 15, fontWeight: 600, color: '#000',
+                        fontSize: evFontSize, fontWeight: 600, color: '#000',
                         background: ev.color ? `${ev.color}55` : '#c9b8e855',
-                        borderLeft: `3px solid ${ev.color ?? PURPLE}`,
-                        borderRadius: 3, padding: '1px 4px', marginBottom: 2,
+                        borderLeft: `2px solid ${ev.color ?? PURPLE}`,
+                        borderRadius: 3, padding: '1px 3px', marginBottom: 2,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         fontFamily: 'var(--font-nunito)',
                       }}>
                         {ev._isContinuation ? `↳ ${ev.title}` : (
                           <>
                             {fmtTime(ev.start) && (
-                              <span style={{ opacity: 0.65, marginRight: 4, fontWeight: 500 }}>
+                              <span style={{ opacity: 0.65, marginRight: 3, fontWeight: 500 }}>
                                 {fmtTime(ev.start)}–{fmtTime(ev.end)}
                               </span>
                             )}
@@ -252,11 +251,11 @@ function DecoModal({ isOpen, onClose, title, children, footer }: {
         padding: 20,
       }}
     >
-      <div onClick={e => e.stopPropagation()}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420 }}>
         <DecoBorder
           filled color={hex(DECO_COLOR)} strokeWidth={0}
           bumpRadius={12} bumpsPerSide={10} mode="random" seed={7} padding={10}
-          style={{ width: 420, maxWidth: '100%', boxSizing: 'border-box' }}
+          style={{ width: '100%', boxSizing: 'border-box' }}
         >
           <div style={{
             background: WHITE, borderRadius: 10, overflow: 'hidden',
@@ -288,7 +287,6 @@ function DecoModal({ isOpen, onClose, title, children, footer }: {
   )
 }
 
-// Inline buttons for modals
 function ModalBtn({ onClick, primary, children }: {
   onClick: () => void; primary?: boolean; children: React.ReactNode
 }) {
@@ -437,9 +435,10 @@ function NoteModal({ isOpen, onClose, onAdd }: {
 
 // ─── Day detail modal ─────────────────────────────────────────────────────────
 
-function DayDetailModal({ isOpen, onClose, date, events, onAddEvent }: {
+function DayDetailModal({ isOpen, onClose, date, events, onAddEvent, onDeleteEvent }: {
   isOpen: boolean; onClose: () => void
-  date: Date | null; events: CalendarEvent[]; onAddEvent: () => void
+  date: Date | null; events: CalendarEvent[]
+  onAddEvent: () => void; onDeleteEvent: (id: string) => void
 }) {
   if (!date) return null
   const dayEvents = events.filter(e => isSameDay(e.start, date))
@@ -484,6 +483,18 @@ function DayDetailModal({ isOpen, onClose, date, events, onAddEvent }: {
                   width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
                   background: ev.color ?? PURPLE,
                 }} />
+                <button
+                  type="button"
+                  onClick={() => onDeleteEvent(ev.id)}
+                  title="Delete event"
+                  style={{
+                    flexShrink: 0, border: 'none', background: 'transparent',
+                    cursor: 'pointer', color: MUTED, fontSize: 16, padding: '0 2px',
+                    opacity: 0.5, lineHeight: 1,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
+                >×</button>
               </div>
             )
           })}
@@ -518,10 +529,10 @@ function FolderNotepad({ notepad }: {
         }}>
           {([
             { key: 'tasks', label: '📋 Tasks', count: notepad.tasks.length },
-            { key: 'done',  label: '✓ Completed', count: notepad.completedTasks.length },
+            { key: 'done',  label: '✓ Done', count: notepad.completedTasks.length },
           ] as const).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '5px 12px',
+              padding: '5px 10px',
               border: `1.5px solid ${BORDER}55`,
               borderBottom: tab === t.key ? `1.5px solid ${WHITE}` : `1.5px solid ${BORDER}55`,
               borderRadius: '8px 8px 0 0',
@@ -532,13 +543,13 @@ function FolderNotepad({ notepad }: {
               fontFamily: 'var(--font-baloo)',
               transition: 'all 0.15s',
               marginBottom: tab === t.key ? -1.5 : 0,
-              fontSize: 17,
+              fontSize: 15,
               whiteSpace: 'nowrap',
             }}>
               {t.label}
               <span style={{
                 marginLeft: 5, borderRadius: 10, padding: '1px 6px',
-                fontSize: 17, fontWeight: 700,
+                fontSize: 13, fontWeight: 700,
                 background: tab === t.key ? '#f3edfb' : `${BORDER}55`,
                 color: tab === t.key ? PURPLE : MUTED,
               }}>{t.count}</span>
@@ -556,22 +567,20 @@ function FolderNotepad({ notepad }: {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px' }}>
           {items.length === 0 ? (
-            <p style={{ fontSize: 17, fontStyle: 'italic', margin: '6px 0', color: MUTED }}>
-              {tab === 'tasks' ? 'No task yet — click on + to add a new task' : 'No task completed'}
+            <p style={{ fontSize: 15, fontStyle: 'italic', margin: '6px 0', color: MUTED }}>
+              {tab === 'tasks' ? 'No task yet — click + to add one' : 'No task completed'}
             </p>
           ) : items.map(task => (
             <div key={task.id} style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '6px 0', borderBottom: `1px solid ${BORDER}44`,
             }}>
-              {/* Color dot */}
               <span style={{
                 width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
                 background: task.completed ? MUTED : (task.color ?? PURPLE),
                 opacity: task.completed ? 0.4 : 1,
                 transition: 'all 0.15s',
               }} />
-              {/* Checkbox */}
               <button type="button" onClick={() => notepad.toggleTask(task.id)} style={{
                 width: 16, height: 16, borderRadius: 4,
                 border: `1.5px solid ${task.completed ? (task.color ?? PURPLE) : BORDER}`,
@@ -585,7 +594,7 @@ function FolderNotepad({ notepad }: {
                 </svg>}
               </button>
               <span style={{
-                flex: 1, fontSize: 20, lineHeight: 1.4,
+                flex: 1, fontSize: 16, lineHeight: 1.4,
                 textDecoration: task.completed ? 'line-through' : 'none',
                 color: task.completed ? MUTED : TEXT,
               }}>{task.label}</span>
@@ -609,46 +618,61 @@ function FolderNotepad({ notepad }: {
 export default function DashboardPage() {
   const notepad = useTasksDB()
   const { currentDate, range, next, prev, goToToday } = useCalendar('month')
-  const { events, addEvent } = useEvents(range)
+  const { events, addEvent, deleteEvent } = useEvents(range)
   const [eventOpen, setEventOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  // Responsive breakpoint
+  const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280)
+  useEffect(() => {
+    const update = () => setWinW(window.innerWidth)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  const isMobile = winW < 768
 
   const preparedEvents = prepareEvents(events, range)
   const monthLabel = formatMonth(currentDate, 'en-US')
   const monthTitle = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)
 
-  // Hauteur des deux colonnes = 100vh - marges haut - marges bas
-  const colHeight = `calc(100vh - ${PAGE_PAD_V * 2}px)`
+  // Layout dimensions
+  const padV = isMobile ? 20 : PAGE_PAD_V
+  const padH = isMobile ? 16 : PAGE_PAD_H
+  const gap  = isMobile ? 20 : COL_GAP
 
-  // Padding interne du DecoBorder (festons + espace)
-  const DECO_BUMP   = 14
-  const DECO_PAD    = 14
-  const DECO_TOTAL  = DECO_BUMP + DECO_PAD
+  const DECO_BUMP  = 14
+  const DECO_PAD   = 14
+  const DECO_TOTAL = DECO_BUMP + DECO_PAD
 
-  // Hauteur du contenu intérieur = hauteur colonne - padding haut - padding bas du DecoBorder
-  const innerHeight = `calc(${colHeight} - ${DECO_TOTAL * 2}px)`
+  // On desktop: fill 100vh. On mobile: fixed heights, page scrolls.
+  const calColH  = isMobile ? '500px' : `calc(100vh - ${padV * 2}px)`
+  const noteColH = isMobile ? '420px' : `calc(100vh - ${padV * 2}px)`
+  const calInnerH  = `calc(${calColH}  - ${DECO_TOTAL * 2}px)`
+  const noteInnerH = `calc(${noteColH} - ${DECO_TOTAL * 2}px)`
 
   const navBtn: CSSProperties = {
     height: 28, borderRadius: 100,
     border: `1.5px solid #fff`,
     background: '#fff', cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: "BLACK", transition: 'background 0.15s',
+    color: 'BLACK', transition: 'background 0.15s',
   }
 
   return (
     <div
       className={`${nunito.variable} ${baloo.variable}`}
       style={{
-        height: '100vh',
-        overflow: 'hidden',
+        minHeight: '100vh',
+        height: isMobile ? 'auto' : '100vh',
+        overflow: isMobile ? 'auto' : 'hidden',
         background: PAGE_BG,
-        padding: `${PAGE_PAD_V}px ${PAGE_PAD_H}px`,
+        padding: `${padV}px ${padH}px`,
         boxSizing: 'border-box',
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         alignItems: 'flex-start',
-        gap: COL_GAP,
+        gap,
         fontFamily: 'var(--font-nunito)',
       }}
     >
@@ -656,6 +680,7 @@ export default function DashboardPage() {
         isOpen={detailOpen} onClose={() => setDetailOpen(false)}
         date={selectedDate} events={preparedEvents}
         onAddEvent={() => setEventOpen(true)}
+        onDeleteEvent={deleteEvent}
       />
       <EventModal isOpen={eventOpen} onClose={() => setEventOpen(false)}
         selectedDate={selectedDate} onAdd={addEvent} />
@@ -666,22 +691,18 @@ export default function DashboardPage() {
         color={hex(DECO_COLOR)}
         strokeWidth={0}
         bumpRadius={DECO_BUMP}
-        bumpsPerSide={15}
+        bumpsPerSide={isMobile ? 8 : 15}
         padding={DECO_PAD}
         style={{
-          // Hauteur explicite — la seule façon fiable de dimensionner
-          // DecoBorder qui a un SVG en position:absolute (ne contribue
-          // pas au layout naturel).
-          height: colHeight,
-          width: '67%',
+          height: calColH,
+          width: isMobile ? '100%' : '67%',
           boxSizing: 'border-box',
           overflow: 'visible',
           flexShrink: 0,
         }}
       >
-        {/* Tout le contenu du calendrier dans un flex-column de hauteur fixe */}
         <div style={{
-          height: innerHeight,
+          height: calInnerH,
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
@@ -692,31 +713,38 @@ export default function DashboardPage() {
             justifyContent: 'space-between', flexShrink: 0,
           }}>
             <h2 style={{
-              margin: 0, fontSize: 40, fontWeight: 700,
-              color: WHITE, fontFamily: 'var(--font-baloo)',
+              margin: 0,
+              fontSize: isMobile ? 22 : 40,
+              fontWeight: 700,
+              color: WHITE,
+              fontFamily: 'var(--font-baloo)',
             }}>
               {monthTitle} {currentDate.getFullYear()}
             </h2>
             <button
               onClick={() => { setSelectedDate(new Date()); setEventOpen(true) }}
-              title="Ajouter un événement"
+              title="Add event"
               style={{
                 ...navBtn,
-                width: 40, height: 40,
-                borderRadius: 9, fontSize: 20, fontWeight: 300,
+                width: isMobile ? 32 : 40,
+                height: isMobile ? 32 : 40,
+                borderRadius: 9,
+                fontSize: isMobile ? 18 : 20,
+                fontWeight: 300,
               }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >+</button>
           </div>
 
-          {/* Grille calendrier — prend tout l'espace disponible */}
+          {/* Grille calendrier */}
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <MonthWeekView
               currentDate={currentDate}
               events={preparedEvents}
               onCellClick={date => { setSelectedDate(date); setDetailOpen(true) }}
               onCellDoubleClick={date => { setSelectedDate(date); setEventOpen(true) }}
+              compact={isMobile}
             />
           </div>
 
@@ -725,18 +753,18 @@ export default function DashboardPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 8, flexShrink: 0,
           }}>
-            <button onClick={prev} style={{ ...navBtn, width: 30, fontSize: 26 }}
+            <button onClick={prev} style={{ ...navBtn, width: 30, fontSize: isMobile ? 18 : 26 }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >‹</button>
             <button onClick={goToToday} style={{
-              ...navBtn, padding: '0 14px', fontSize: 26,
+              ...navBtn, padding: '0 14px', fontSize: isMobile ? 14 : 26,
               fontFamily: 'var(--font-baloo)',
             }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >Today</button>
-            <button onClick={next} style={{ ...navBtn, width: 30, fontSize: 26 }}
+            <button onClick={next} style={{ ...navBtn, width: 30, fontSize: isMobile ? 18 : 26 }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >›</button>
@@ -749,17 +777,18 @@ export default function DashboardPage() {
         filled
         color={hex(DECO_COLOR)}
         strokeWidth={0}
-        bumpRadius={DECO_BUMP}
-        bumpsPerSide={11}
+        bumpRadius={isMobile ? 14 : 18}
+        bumpsPerSide={isMobile ? 5 : 7}
         padding={DECO_PAD}
         style={{
-          height: colHeight,
-          flex: 1,
+          height: noteColH,
+          width: isMobile ? '100%' : undefined,
+          flex: isMobile ? undefined : 1,
           boxSizing: 'border-box',
           overflow: 'visible',
         }}
       >
-        <div style={{ height: innerHeight }}>
+        <div style={{ height: noteInnerH }}>
           <FolderNotepad notepad={notepad} />
         </div>
       </DecoBorder>
