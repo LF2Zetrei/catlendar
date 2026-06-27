@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
-  title: "DuchessCats",
+  title: "a lot a lot",
   description: "DuchessCats linktree",
 };
 

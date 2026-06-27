@@ -26,3 +26,8 @@ create table if not exists tasks (
 );
 
 alter table tasks disable row level security;
+
+-- Grant full access to the anon role (required even with RLS disabled)
+grant usage on schema public to anon;
+grant all on table events to anon;
+grant all on table tasks  to anon;
