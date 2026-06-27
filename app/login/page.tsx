@@ -1,5 +1,5 @@
 "use client"
-import { CSSProperties, useState } from "react"
+import { CSSProperties, Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Nunito, Baloo_2 } from "next/font/google"
 import { DecoBorder } from "@/components/decoration/DecorBorder"
@@ -16,7 +16,9 @@ const MUTED      = '#9b8aaa'
 const PURPLE     = '#9B6DFF'
 const WHITE      = '#ffffff'
 
-export default function LoginPage() {
+// Isolated in its own component so it can be wrapped in <Suspense>
+// (useSearchParams requires a Suspense boundary in the App Router)
+function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const [code, setCode]       = useState('')
@@ -56,6 +58,43 @@ export default function LoginPage() {
   }
 
   return (
+    <>
+      <div style={{ width: '100%' }}>
+        <input
+          type="password"
+          value={code}
+          onChange={e => setCode(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          placeholder="••••••"
+          autoFocus
+          style={inp}
+        />
+        {error && (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#e74c3c', textAlign: 'center' }}>
+            {error}
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={submit}
+        disabled={loading}
+        style={{
+          width: '100%', padding: '10px 0',
+          background: PURPLE, color: WHITE, border: 'none',
+          borderRadius: 10, fontSize: 15, fontWeight: 700,
+          fontFamily: 'var(--font-baloo)', cursor: loading ? 'wait' : 'pointer',
+          opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s',
+        }}
+      >
+        {loading ? 'Checking…' : 'Access calendar →'}
+      </button>
+    </>
+  )
+}
+
+export default function LoginPage() {
+  return (
     <div
       className={`${nunito.variable} ${baloo.variable}`}
       style={{
@@ -74,7 +113,6 @@ export default function LoginPage() {
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           padding: '28px 24px', gap: 20,
         }}>
-          {/* Logo / title */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>🐱</div>
             <h1 style={{
@@ -86,39 +124,9 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Code input */}
-          <div style={{ width: '100%' }}>
-            <input
-              type="password"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="••••••"
-              autoFocus
-              style={inp}
-            />
-            {error && (
-              <p style={{ margin: '8px 0 0', fontSize: 12, color: '#e74c3c', textAlign: 'center' }}>
-                {error}
-              </p>
-            )}
-          </div>
-
-          {/* Submit button */}
-          <button
-            type="button"
-            onClick={submit}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '10px 0',
-              background: PURPLE, color: WHITE, border: 'none',
-              borderRadius: 10, fontSize: 15, fontWeight: 700,
-              fontFamily: 'var(--font-baloo)', cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s',
-            }}
-          >
-            {loading ? 'Checking…' : 'Access calendar →'}
-          </button>
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
         </div>
       </DecoBorder>
     </div>
