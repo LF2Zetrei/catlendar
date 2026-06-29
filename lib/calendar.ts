@@ -14,6 +14,7 @@ export type CalendarEvent<T = Record<string, unknown>> = {
   start: Date
   end: Date
   color?: string
+  categoryId?: string
   // Marqueur interne — positionné par splitEventAtMidnight(),
   // jamais fourni manuellement par l'appelant.
   _isContinuation?: boolean

@@ -7,6 +7,8 @@ import { useNotepad } from "@/hooks/useNotepad"
 import { useTasksDB } from "@/hooks/useTasksDB"
 import { useEvents } from "@/hooks/useEvents"
 import { useCalendar } from "@/hooks/useCalendar"
+import { useCategories } from "@/hooks/useCategories"
+import { CategoryRow } from "@/lib/supabase"
 import { DecoBorder } from "@/components/decoration/DecorBorder"
 import { hex } from "@/lib/colors"
 import {
@@ -304,16 +306,21 @@ function ModalBtn({ onClick, primary, children }: {
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
-function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
+function EventModal({ isOpen, onClose, selectedDate, onAdd, categories, onAddCategory }: {
   isOpen: boolean; onClose: () => void
   selectedDate: Date | null; onAdd: (ev: CalendarEvent) => void
+  categories: CategoryRow[]
+  onAddCategory: (name: string, color: string) => Promise<CategoryRow | null>
 }) {
   const [title, setTitle] = useState('')
-  const [color, setColor] = useState('#c9b8e8')
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const [showTime, setShowTime] = useState(false)
   const [showEndTime, setShowEndTime] = useState(false)
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatColor, setNewCatColor] = useState(PASTEL_SWATCHES[0])
 
   const inp: CSSProperties = {
     width: '100%', padding: '8px 12px', border: `1.5px solid ${BORDER}`,
@@ -326,14 +333,27 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
     color: MUTED, fontFamily: 'var(--font-baloo)',
   }
 
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return
+    const result = await onAddCategory(newCatName.trim(), newCatColor)
+    if (result) {
+      setCategoryId(result.id)
+      setShowNewCat(false)
+      setNewCatName('')
+      setNewCatColor(PASTEL_SWATCHES[0])
+    }
+  }
+
   const submit = () => {
     if (!title.trim() || !selectedDate) return
     const base = startOfDay(selectedDate)
     const t = (s: string) => { const [h,m] = s.split(':').map(Number); const d = new Date(base); d.setHours(h,m,0,0); return d }
     const start = showTime ? t(startTime) : base
     const end = showTime && showEndTime ? t(endTime) : start
-    onAdd({ id: `${Date.now()}`, title: title.trim(), start, end, color })
-    setTitle(''); setShowTime(false); setShowEndTime(false); setStartTime('09:00'); setEndTime('10:00')
+    const category = categories.find(c => c.id === categoryId)
+    onAdd({ id: `${Date.now()}`, title: title.trim(), start, end, color: category?.color, categoryId: categoryId ?? undefined })
+    setTitle(''); setCategoryId(null); setShowTime(false); setShowEndTime(false)
+    setStartTime('09:00'); setEndTime('10:00'); setShowNewCat(false); setNewCatName('')
     onClose()
   }
 
@@ -350,15 +370,59 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
             onKeyDown={e => e.key === 'Enter' && submit()}
             placeholder="Event name" autoFocus style={inp} />
         </div>
-        <div><label style={lbl}>Color</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {PASTEL_SWATCHES.map(c => (
-              <button key={c} type="button" onClick={() => setColor(c)} style={{
-                width: 28, height: 28, borderRadius: '50%', background: c, padding: 0,
-                border: color === c ? `3px solid ${TEXT}` : `3px solid transparent`, cursor: 'pointer',
-              }} />
+        <div>
+          <label style={lbl}>Category</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {categories.map(cat => (
+              <button key={cat.id} type="button" onClick={() => setCategoryId(categoryId === cat.id ? null : cat.id)} style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: 20,
+                border: `1.5px solid ${categoryId === cat.id ? cat.color : BORDER}`,
+                background: categoryId === cat.id ? `${cat.color}44` : 'transparent',
+                cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                color: categoryId === cat.id ? TEXT : MUTED,
+                fontFamily: 'var(--font-nunito)', transition: 'all 0.15s',
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+                {cat.name}
+              </button>
             ))}
+            <button type="button" onClick={() => setShowNewCat(v => !v)} style={{
+              width: 24, height: 24, borderRadius: 7,
+              border: `1.5px solid ${showNewCat ? PURPLE : BORDER}`,
+              background: showNewCat ? `${PURPLE}22` : 'transparent',
+              cursor: 'pointer', color: showNewCat ? PURPLE : MUTED,
+              fontSize: 16, fontWeight: 300,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>+</button>
           </div>
+          {showNewCat && (
+            <div style={{
+              marginTop: 10, padding: '10px 12px',
+              border: `1.5px solid ${BORDER}55`, borderRadius: 10,
+              background: PAGE_BG, display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              <input
+                value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                placeholder="Category name" autoFocus
+                style={{ ...inp, fontSize: 12, padding: '6px 10px' }}
+              />
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {PASTEL_SWATCHES.map(c => (
+                  <button key={c} type="button" onClick={() => setNewCatColor(c)} style={{
+                    width: 22, height: 22, borderRadius: '50%', background: c, padding: 0,
+                    border: newCatColor === c ? `2.5px solid ${TEXT}` : `2.5px solid transparent`,
+                    cursor: 'pointer',
+                  }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                <ModalBtn onClick={() => { setShowNewCat(false); setNewCatName('') }}>Cancel</ModalBtn>
+                <ModalBtn primary onClick={handleAddCategory}>Create</ModalBtn>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button type="button" onClick={() => { setShowTime(v => !v); setShowEndTime(false) }} style={{
@@ -703,6 +767,7 @@ export default function DashboardPage() {
   const notepad = useTasksDB()
   const { currentDate, range, next, prev, goToToday } = useCalendar('month')
   const { events, addEvent, deleteEvent } = useEvents(range)
+  const { categories, addCategory } = useCategories()
   const [eventOpen, setEventOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -773,7 +838,8 @@ export default function DashboardPage() {
         onDeleteEvent={deleteEvent}
       />
       <EventModal isOpen={eventOpen} onClose={() => setEventOpen(false)}
-        selectedDate={selectedDate} onAdd={addEvent} />
+        selectedDate={selectedDate} onAdd={addEvent}
+        categories={categories} onAddCategory={addCategory} />
 
       {/* ── Colonne gauche : calendrier ── */}
       <DecoBorder

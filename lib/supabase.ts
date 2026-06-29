@@ -7,12 +7,20 @@ export const supabase = createClient(url, key)
 
 // ─── Row types (reflect the DB schema exactly) ────────────────────────────────
 
+export type CategoryRow = {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
+
 export type EventRow = {
   id: string
   title: string
   start_at: string   // ISO string
   end_at: string
   color: string | null
+  category_id: string | null
   created_at: string
 }
 

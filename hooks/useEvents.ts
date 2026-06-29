@@ -10,6 +10,7 @@ function rowToEvent(row: EventRow): CalendarEvent {
     start: new Date(row.start_at),
     end: new Date(row.end_at),
     color: row.color ?? undefined,
+    categoryId: row.category_id ?? undefined,
   }
 }
 
@@ -48,6 +49,7 @@ export function useEvents(range: CalendarRange) {
         start_at: event.start.toISOString(),
         end_at: event.end.toISOString(),
         color: event.color ?? null,
+        category_id: event.categoryId ?? null,
       })
       .select()
       .single()
