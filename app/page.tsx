@@ -201,12 +201,14 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick, to
                       }}>
                         {ev._isContinuation ? `↳ ${ev.title}` : (
                           <>
+                            {ev.title}
                             {fmtTime(ev.start) && (
-                              <span style={{ opacity: 0.65, marginRight: 3, fontWeight: 500 }}>
-                                {fmtTime(ev.start)}–{fmtTime(ev.end)}
+                              <span style={{ opacity: 0.65, marginLeft: 3, fontWeight: 500 }}>
+                                {ev.start.getTime() !== ev.end.getTime()
+                                  ? `${fmtTime(ev.start)}–${fmtTime(ev.end)}`
+                                  : fmtTime(ev.start)}
                               </span>
                             )}
-                            {ev.title}
                           </>
                         )}
                       </div>
@@ -309,6 +311,7 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
   const [title, setTitle] = useState('')
   const [color, setColor] = useState('#c9b8e8')
   const [showTime, setShowTime] = useState(false)
+  const [showEndTime, setShowEndTime] = useState(false)
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
 
@@ -327,10 +330,10 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
     if (!title.trim() || !selectedDate) return
     const base = startOfDay(selectedDate)
     const t = (s: string) => { const [h,m] = s.split(':').map(Number); const d = new Date(base); d.setHours(h,m,0,0); return d }
-    onAdd({ id: `${Date.now()}`, title: title.trim(),
-      start: showTime ? t(startTime) : base,
-      end: showTime ? t(endTime) : new Date(base.getTime() + 3600000), color })
-    setTitle(''); setShowTime(false); setStartTime('09:00'); setEndTime('10:00')
+    const start = showTime ? t(startTime) : base
+    const end = showTime && showEndTime ? t(endTime) : start
+    onAdd({ id: `${Date.now()}`, title: title.trim(), start, end, color })
+    setTitle(''); setShowTime(false); setShowEndTime(false); setStartTime('09:00'); setEndTime('10:00')
     onClose()
   }
 
@@ -357,8 +360,8 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
             ))}
           </div>
         </div>
-        <div>
-          <button type="button" onClick={() => setShowTime(v => !v)} style={{
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button type="button" onClick={() => { setShowTime(v => !v); setShowEndTime(false) }} style={{
             display: 'flex', alignItems: 'center', gap: 8, border: 'none',
             background: 'transparent', cursor: 'pointer', padding: 0,
             fontSize: 12, fontWeight: 600, color: showTime ? PURPLE : MUTED,
@@ -375,13 +378,35 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
             </span>
             Add a specific time
           </button>
-          {showTime && <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center' }}>
-            <div style={{ flex: 1 }}><label style={lbl}>Start</label>
-              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inp} /></div>
-            <span style={{ paddingTop: 22, color: MUTED }}>→</span>
-            <div style={{ flex: 1 }}><label style={lbl}>End</label>
-              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inp} /></div>
-          </div>}
+          {showTime && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 24 }}>
+              <div><label style={lbl}>Start time</label>
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inp} />
+              </div>
+              <button type="button" onClick={() => setShowEndTime(v => !v)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, border: 'none',
+                background: 'transparent', cursor: 'pointer', padding: 0,
+                fontSize: 12, fontWeight: 600, color: showEndTime ? PURPLE : MUTED,
+              }}>
+                <span style={{
+                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                  border: `1.5px solid ${showEndTime ? PURPLE : BORDER}`,
+                  background: showEndTime ? PURPLE : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {showEndTime && <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>}
+                </span>
+                Add an end time
+              </button>
+              {showEndTime && (
+                <div><label style={lbl}>End time</label>
+                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inp} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </DecoModal>
@@ -493,7 +518,7 @@ function DayDetailModal({ isOpen, onClose, date, events, onAddEvent, onDeleteEve
                   <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{ev.title}</div>
                   {start && (
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                      {start}{end ? ` – ${end}` : ''}
+                      {start}{end && ev.start.getTime() !== ev.end.getTime() ? ` – ${end}` : ''}
                     </div>
                   )}
                 </div>
