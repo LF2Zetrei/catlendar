@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react"
 export type NotepadTask = {
   id: string
   label: string
-  color: string
+  colors: string[]
   completed: boolean
   createdAt: Date
 }
@@ -13,7 +13,8 @@ export type NotepadTask = {
 export type UseNotepadReturn = {
   tasks: NotepadTask[]
   completedTasks: NotepadTask[]
-  addTask: (label: string, color?: string) => void
+  addTask: (label: string, colors?: string[]) => void
+  updateTask: (id: string, label: string) => void
   toggleTask: (id: string) => void
   deleteTask: (id: string) => void
   isFlipped: boolean
@@ -27,15 +28,20 @@ export function useNotepad(initialTasks: NotepadTask[] = []): UseNotepadReturn {
   const tasks = useMemo(() => allTasks.filter(t => !t.completed), [allTasks])
   const completedTasks = useMemo(() => allTasks.filter(t => t.completed), [allTasks])
 
-  const addTask = useCallback((label: string, color = '#c9b8e8') => {
+  const addTask = useCallback((label: string, colors = ['#c9b8e8']) => {
     if (!label.trim()) return
     setAllTasks(prev => [...prev, {
       id: `${Date.now()}-${Math.random()}`,
       label: label.trim(),
-      color,
+      colors,
       completed: false,
       createdAt: new Date(),
     }])
+  }, [])
+
+  const updateTask = useCallback((id: string, label: string) => {
+    if (!label.trim()) return
+    setAllTasks(prev => prev.map(t => t.id === id ? { ...t, label: label.trim() } : t))
   }, [])
 
   const toggleTask = useCallback((id: string) => {
@@ -48,5 +54,5 @@ export function useNotepad(initialTasks: NotepadTask[] = []): UseNotepadReturn {
 
   const flip = useCallback(() => setIsFlipped(f => !f), [])
 
-  return { tasks, completedTasks, addTask, toggleTask, deleteTask, isFlipped, flip }
+  return { tasks, completedTasks, addTask, updateTask, toggleTask, deleteTask, isFlipped, flip }
 }

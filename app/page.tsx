@@ -14,7 +14,6 @@ import {
   formatMonth,
   getMonthGrid,
   isSameDay,
-  isToday,
   prepareEvents,
   startOfDay,
 } from "@/lib/calendar"
@@ -89,11 +88,12 @@ function getWeekNumber(date: Date): number {
 
 const WEEKDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
-function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick, compact = false }: {
+function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick, today, compact = false }: {
   currentDate: Date
   events: CalendarEvent[]
   onCellClick: (d: Date) => void
   onCellDoubleClick: (d: Date) => void
+  today: Date
   compact?: boolean
 }) {
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -184,10 +184,10 @@ function MonthWeekView({ currentDate, events, onCellClick, onCellDoubleClick, co
                     <div style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: dayCircle, height: dayCircle, borderRadius: '50%',
-                      fontSize: dayFontSize, fontWeight: isToday(day) ? 700 : 500,
+                      fontSize: dayFontSize, fontWeight: isSameDay(day, today) ? 700 : 500,
                       fontFamily: 'var(--font-baloo)',
-                      background: isToday(day) ? PURPLE : 'transparent',
-                      color: isToday(day) ? WHITE : isOut ? MUTED : TEXT,
+                      background: isSameDay(day, today) ? PURPLE : 'transparent',
+                      color: isSameDay(day, today) ? WHITE : isOut ? MUTED : TEXT,
                       marginBottom: 2,
                     }}>{day.getDate()}</div>
                     {dayEvents.map(ev => (
@@ -389,17 +389,24 @@ function EventModal({ isOpen, onClose, selectedDate, onAdd }: {
 }
 
 function NoteModal({ isOpen, onClose, onAdd }: {
-  isOpen: boolean; onClose: () => void; onAdd: (label: string, color: string) => void
+  isOpen: boolean; onClose: () => void; onAdd: (label: string, colors: string[]) => void
 }) {
   const [value, setValue] = useState('')
-  const [color, setColor] = useState('#c9b8e8')
+  const [colors, setColors] = useState<string[]>(['#c9b8e8'])
   const lbl: CSSProperties = {
     fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
     textTransform: 'uppercase', marginBottom: 6, display: 'block',
     color: MUTED, fontFamily: 'var(--font-baloo)',
   }
+  const toggleColor = (c: string) => {
+    setColors(prev =>
+      prev.includes(c)
+        ? prev.length > 1 ? prev.filter(x => x !== c) : prev
+        : prev.length < 2 ? [...prev, c] : [prev[1], c]
+    )
+  }
   const submit = () => {
-    if (value.trim()) { onAdd(value.trim(), color); setValue(''); setColor('#c9b8e8'); onClose() }
+    if (value.trim()) { onAdd(value.trim(), colors); setValue(''); setColors(['#c9b8e8']); onClose() }
   }
   return (
     <DecoModal isOpen={isOpen} onClose={onClose} title="📝 New task"
@@ -418,13 +425,24 @@ function NoteModal({ isOpen, onClose, onAdd }: {
             }} />
         </div>
         <div>
-          <label style={lbl}>Color</label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <label style={lbl}>Colors <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(max 2)</span></label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {PASTEL_SWATCHES.map(c => (
-              <button key={c} type="button" onClick={() => setColor(c)} style={{
+              <button key={c} type="button" onClick={() => toggleColor(c)} style={{
                 width: 28, height: 28, borderRadius: '50%', background: c, padding: 0,
-                border: color === c ? `3px solid ${TEXT}` : `3px solid transparent`, cursor: 'pointer',
-              }} />
+                border: colors.includes(c) ? `3px solid ${TEXT}` : `3px solid transparent`,
+                cursor: 'pointer', position: 'relative',
+              }}>
+                {colors.includes(c) && (
+                  <span style={{
+                    position: 'absolute', inset: 0, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, color: '#fff', fontWeight: 700,
+                  }}>
+                    {colors.indexOf(c) + 1}
+                  </span>
+                )}
+              </button>
             ))}
           </div>
         </div>
@@ -511,7 +529,21 @@ function FolderNotepad({ notepad }: {
 }) {
   const [tab, setTab] = useState<'tasks'|'done'>('tasks')
   const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingLabel, setEditingLabel] = useState('')
   const items = tab === 'tasks' ? notepad.tasks : notepad.completedTasks
+
+  const startEdit = (task: { id: string; label: string }) => {
+    setEditingId(task.id)
+    setEditingLabel(task.label)
+  }
+
+  const commitEdit = () => {
+    if (editingId) {
+      notepad.updateTask(editingId, editingLabel)
+      setEditingId(null)
+    }
+  }
 
   return (
     <>
@@ -570,40 +602,67 @@ function FolderNotepad({ notepad }: {
             <p style={{ fontSize: 15, fontStyle: 'italic', margin: '6px 0', color: MUTED }}>
               {tab === 'tasks' ? 'No task yet — click + to add one' : 'No task completed'}
             </p>
-          ) : items.map(task => (
-            <div key={task.id} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 0', borderBottom: `1px solid ${BORDER}44`,
-            }}>
-              <span style={{
-                width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                background: task.completed ? MUTED : (task.color ?? PURPLE),
-                opacity: task.completed ? 0.4 : 1,
-                transition: 'all 0.15s',
-              }} />
-              <button type="button" onClick={() => notepad.toggleTask(task.id)} style={{
-                width: 16, height: 16, borderRadius: 4,
-                border: `1.5px solid ${task.completed ? (task.color ?? PURPLE) : BORDER}`,
-                background: task.completed ? (task.color ?? PURPLE) : 'transparent',
-                flexShrink: 0, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, transition: 'all 0.15s',
+          ) : items.map(task => {
+            const primaryColor = task.colors[0] ?? PURPLE
+            const isEditing = editingId === task.id
+            return (
+              <div key={task.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 0', borderBottom: `1px solid ${BORDER}44`,
               }}>
-                {task.completed && <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>}
-              </button>
-              <span style={{
-                flex: 1, fontSize: 16, lineHeight: 1.4,
-                textDecoration: task.completed ? 'line-through' : 'none',
-                color: task.completed ? MUTED : TEXT,
-              }}>{task.label}</span>
-              <button type="button" onClick={() => notepad.deleteTask(task.id)} style={{
-                opacity: 0.2, border: 'none', background: 'transparent',
-                cursor: 'pointer', fontSize: 16, padding: '0 2px', color: TEXT,
-              }}>×</button>
-            </div>
-          ))}
+                <button type="button" onClick={() => notepad.toggleTask(task.id)} style={{
+                  width: 16, height: 16, borderRadius: 4,
+                  border: `1.5px solid ${task.completed ? primaryColor : BORDER}`,
+                  background: task.completed ? primaryColor : 'transparent',
+                  flexShrink: 0, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, transition: 'all 0.15s',
+                }}>
+                  {task.completed && <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>}
+                </button>
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    value={editingLabel}
+                    onChange={e => setEditingLabel(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitEdit()
+                      if (e.key === 'Escape') setEditingId(null)
+                    }}
+                    onBlur={commitEdit}
+                    style={{
+                      flex: 1, fontSize: 16, lineHeight: 1.4,
+                      border: 'none', borderBottom: `1.5px solid ${primaryColor}`,
+                      background: 'transparent', outline: 'none',
+                      color: TEXT, fontFamily: 'var(--font-nunito)', padding: '0 2px',
+                    }}
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={() => startEdit(task)}
+                    style={{
+                      flex: 1, fontSize: 16, lineHeight: 1.4,
+                      textDecoration: task.completed ? 'line-through' : 'none',
+                      color: task.completed ? MUTED : TEXT,
+                      cursor: 'text', userSelect: 'none',
+                    }}
+                  >{task.label}</span>
+                )}
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {task.colors.slice(0, 2).map((c, i) => (
+                    <span key={i} style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: task.completed ? MUTED : c,
+                      opacity: task.completed ? 0.4 : 1,
+                      transition: 'all 0.15s',
+                    }} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
           {tab === 'tasks' && Array.from({ length: Math.max(0, 12 - items.length) }).map((_, i) => (
             <div key={i} style={{ height: 30, borderBottom: `1px solid ${BORDER}44` }} />
           ))}
@@ -622,6 +681,12 @@ export default function DashboardPage() {
   const [eventOpen, setEventOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  const [today, setToday] = useState(() => new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setToday(new Date()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Responsive breakpoint
   const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280)
@@ -742,6 +807,7 @@ export default function DashboardPage() {
             <MonthWeekView
               currentDate={currentDate}
               events={preparedEvents}
+              today={today}
               onCellClick={date => { setSelectedDate(date); setDetailOpen(true) }}
               onCellDoubleClick={date => { setSelectedDate(date); setEventOpen(true) }}
               compact={isMobile}

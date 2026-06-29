@@ -4,22 +4,21 @@ import { NotepadTask } from "@/hooks/useNotepad"
 import { supabase, TaskRow } from "@/lib/supabase"
 
 function rowToTask(row: TaskRow): NotepadTask {
+  const raw = row.color || '#c9b8e8'
+  const colors = raw.split(',').map(c => c.trim()).filter(Boolean)
   return {
     id: row.id,
     label: row.label,
-    color: row.color,
+    colors: colors.length > 0 ? colors : ['#c9b8e8'],
     completed: row.completed,
     createdAt: new Date(row.created_at),
   }
 }
 
-// Drop-in replacement for useNotepad, backed by Supabase.
-// Exposes the same API so FolderNotepad needs no changes.
 export function useTasksDB() {
   const [allTasks, setAllTasks] = useState<NotepadTask[]>([])
   const [isFlipped, setIsFlipped] = useState(false)
 
-  // Load all tasks once on mount
   useEffect(() => {
     supabase
       .from('tasks')
@@ -34,10 +33,11 @@ export function useTasksDB() {
   const tasks          = useMemo(() => allTasks.filter(t => !t.completed), [allTasks])
   const completedTasks = useMemo(() => allTasks.filter(t => t.completed),  [allTasks])
 
-  const addTask = useCallback(async (label: string, color = '#c9b8e8') => {
+  const addTask = useCallback(async (label: string, colors = ['#c9b8e8']) => {
     if (!label.trim()) return
     const id = `${Date.now()}-${Math.random()}`
     const created_at = new Date().toISOString()
+    const color = colors.join(',')
 
     const { data, error } = await supabase
       .from('tasks')
@@ -48,6 +48,12 @@ export function useTasksDB() {
     if (!error && data) {
       setAllTasks(prev => [...prev, rowToTask(data as TaskRow)])
     }
+  }, [])
+
+  const updateTask = useCallback(async (id: string, label: string) => {
+    if (!label.trim()) return
+    await supabase.from('tasks').update({ label: label.trim() }).eq('id', id)
+    setAllTasks(prev => prev.map(t => t.id === id ? { ...t, label: label.trim() } : t))
   }, [])
 
   const toggleTask = useCallback(async (id: string) => {
@@ -66,5 +72,5 @@ export function useTasksDB() {
 
   const flip = useCallback(() => setIsFlipped(f => !f), [])
 
-  return { tasks, completedTasks, addTask, toggleTask, deleteTask, isFlipped, flip }
+  return { tasks, completedTasks, addTask, updateTask, toggleTask, deleteTask, isFlipped, flip }
 }
